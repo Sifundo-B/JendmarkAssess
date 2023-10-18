@@ -1,0 +1,129 @@
+﻿@page "/generic-form-modal"
+@using Core.Processing.Data;
+@using Core.Processing.Helpers
+@using Microsoft.AspNetCore.Mvc.Rendering;
+@using System.Collections;
+@typeparam TData
+
+
+<div class="modal" style="display: @(IsOpen ? "block" : "none")">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">@FormTitle</h5>
+                <button type="button" class="close" @onclick="CloseModal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    @if (FormData is not null)
+                    {
+                        @foreach (var property in FormData)
+                        {
+                            @if (property.Label.Equals(nameof(Device)))
+                            {
+                                <div class="form-group">
+                                    <label>@property.Label</label>
+                                    <InputSelect name="@property.Label" @bind-Value="@property.Value" class="form-control" >
+                                        <option value="">-- Select Device --</option>
+
+                                        @foreach (var sli in Devices)
+                                        {
+                                            <option value="@sli.DeviceID">@sli.Name</option>
+                                        }
+                                    </InputSelect>
+                                </div>
+                            }
+                            else if (property.Label.Equals(nameof(Operation)))
+                            {
+                                <div class="form-group">
+                                    <label>@property.Label</label>
+                                    <InputSelect name="@property.Label" @bind-Value="@property.Value" class="form-control">
+                                        <option value="">-- Select Device --</option>
+
+                                        @foreach (var sli in Operations)
+                                        {
+                                            <option value="@sli.OperationID">@sli.Name</option>
+                                        }
+                                    </InputSelect>
+                                </div>
+                            }
+                            else if (property.Label.Equals(nameof(DeviceType)))
+                            {
+                                <div class="form-group">
+                                    <label>@property.Label</label>
+                                    <InputSelect name="@property.Label" @bind-Value="@property.Value" class="form-control">
+                                        <option value="">-- Select Device --</option>
+
+                                        @foreach (var sli in Enum.GetValues(typeof(DeviceType)))
+                                        {
+                                            <option value="@sli">@sli</option>
+                                        }
+                                    </InputSelect>
+                                </div>
+                            }
+                            else if (property.Label.Equals("ImageData"))
+                            {
+                                <div class="form-group">
+                                    <label>@property.Label</label>
+                                    <InputFile name="@property.Label" @bind-Value="@property.Value" class="form-control">
+
+                                    </InputFile>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="form-group">
+                                    <label>@property.Label</label>
+                                    <input type="@property.Type" name="@property.Label" @bind="@property.Value" class="form-control" />
+                                </div>
+                            }
+
+                        }
+                    }
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" @onclick="CloseModal">Close</button>
+                <button type="button" class="btn btn-primary" @onclick="() => SubmitForm(FormData)">Submit</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public string FormTitle { get; set; }
+    [Parameter] public EventCallback<bool> OnClose { get; set; }
+    [Parameter] public EventCallback<List<FormField>> OnSubmit { get; set; }
+    [Parameter] public List<Device> Devices { get; set; }
+    [Parameter] public List<Operation> Operations { get; set; }
+    public List<FormField> FormData { get; set; }
+
+    protected override async Task OnInitializedAsync() => InitializeFormFields();
+    private void CloseModal()
+    {
+        IsOpen = false;
+        OnClose.InvokeAsync(false);
+    }
+
+    private void SubmitForm(List<FormField> formData)
+    {
+        OnSubmit.InvokeAsync(FormData);
+        CloseModal();
+    }
+
+    private void InitializeFormFields() => FormData = typeof(TData).GetProperties()
+            .Select(propertyInfo => new FormField()
+                {
+                    Label = propertyInfo.Name,
+                    Type = GlobalHelper.GetHtmlInputType(propertyInfo.PropertyType),
+                    Value = string.Empty
+                })
+            .ToList();
+
+
+  
+}
+

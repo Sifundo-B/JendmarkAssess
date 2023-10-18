@@ -1,0 +1,89 @@
+﻿@page "/processing"
+@using Core.Processing.Data
+@using Core.Processing.Components
+@using Core.Processing.Helpers;
+@using static Core.Processing.Helpers.Enums;
+@inject ProcessingService ProcessingService
+
+<h3>Operations List</h3>
+
+<button class="btn btn-primary" @onclick="() => HandleModalOpen(ModalTypeEnum.NewOperattion)">New Operation</button>
+<button class="btn btn-primary" @onclick="() => HandleModalOpen(ModalTypeEnum.NewDevice)">New Device</button>
+
+<div>&nbsp;</div>
+<div>
+    <Generic_Form_Modal 
+        TData="Operation" 
+        IsOpen="IsNewFormModalOpen"
+        FormTitle="Add New Operation" 
+        OnClose="HandleClose" 
+        OnSubmit="HandleSubmission" 
+        Devices="ProcessingService.GetSampleDevices().Result" />
+
+    <Generic_Form_Modal 
+        TData="AddDeviceToOperationViewModel" 
+        IsOpen="IsNewDeviceModalOpen" 
+        FormTitle="Add New Device" 
+        OnClose="HandleClose" 
+        OnSubmit="HandleSubmission" 
+        Operations="ProcessingService.GetSampleOperations().Result" 
+        Devices="ProcessingService.GetSampleDevices().Result" />
+
+</div>
+
+@if (operations.Count == 0)
+{
+    <p>No operations to display.</p>
+}
+else
+{
+    <List_component TData="Operation" items="operations" OnRemove="HandleRemove" />
+}
+
+
+@code {
+    private List<Operation> operations = new List<Operation>();
+    private Operation newOperation = new Operation();
+    private bool IsNewFormModalOpen, IsNewDeviceModalOpen = false;
+    private void AddOperation(Operation operation) => operations.Add(operation);
+    private void RemoveOperation(int operationId) => operations.Remove(operations.First(x => x.OperationID.Equals(operationId)));
+    protected override async Task OnInitializedAsync() => operations = await ProcessingService.GetSampleOperations();
+    private void HandleRemove(Operation operation) => RemoveOperation(operationId: operation.OperationID);
+    private void HandleModalOpen(ModalTypeEnum modalTypeEnum) => Open(modalTypeEnum);
+    private void HandleClose() => Reset();
+    private void HandleSubmission(List<FormField> formData)
+    {
+        if (IsNewFormModalOpen)
+        {
+            var converter = new FormFieldConverter<Operation>();
+            var result = converter.Convert(formData);
+            AddOperation(result);
+        }
+        else
+        {
+            var converter = new FormFieldConverter<AddDeviceToOperationViewModel>();
+            var result = converter.Convert(formData);
+            var op = operations.Find(x => x.OperationID == result.Operation.OperationID);
+            op.Device = ProcessingService.GetSampleDevices().Result.Find(x => x.DeviceID == result.Device.DeviceID);
+        }
+    }
+    private void Open(ModalTypeEnum typeEnum)
+    {
+        Reset();
+        switch (typeEnum)
+        {
+            case ModalTypeEnum.NewDevice:
+                IsNewDeviceModalOpen = true;
+                break;
+            case ModalTypeEnum.NewOperattion:
+                IsNewFormModalOpen = true;
+                break;
+        }
+    }
+    private void Reset()
+    {
+        IsNewFormModalOpen = false;
+        IsNewDeviceModalOpen = false;
+    }
+
+}

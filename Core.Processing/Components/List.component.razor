@@ -1,0 +1,54 @@
+﻿@page "/generictable"
+@using Core.Processing.Data;
+@using System.Reflection;
+@using System.ComponentModel;
+@using Core.Processing.Helpers;
+
+@typeparam TData
+
+<table class="table table-striped table-bordered">
+    <thead class="thead-dark">
+        <tr>
+            @foreach (var property in typeof(TData).GetProperties())
+            {
+                <th>@property.Name</th>
+            }
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in items)
+        {
+            <tr>
+                @foreach (var property in typeof(TData).GetProperties())
+                {
+                    if (property.PropertyType == typeof(byte[]))
+                    {
+                        var base64Image = GlobalHelper.ConvertByteArrayToBase64((byte[])property.GetValue(item));
+                        <td><img src="@base64Image" alt="Image" /></td>
+                    }
+                    else if (property.PropertyType == typeof(Device))
+                    {
+                        <td>@((property.GetValue(item) as Device)?.Name)</td>
+                    }
+                    else
+                    {
+                        <td>@property.GetValue(item)</td>
+                    }
+                }
+                <td>
+                    <button class="btn btn-danger" @onclick="() => RemoveItem(item)"> Remove</button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    [Parameter] public List<TData> items { get; set; }
+    [Parameter] public EventCallback<TData> OnRemove { get; set; }
+    private void RemoveItem(TData item)
+    {
+        OnRemove.InvokeAsync(item);
+    }
+}
